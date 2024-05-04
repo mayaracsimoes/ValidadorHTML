@@ -8,13 +8,17 @@ import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Stack;
 
 public class Trabalho1 {
 
 	private JFrame frame;
 	private JTextField filePathField;
 	private JTextArea resultTextArea;
+	private String[] tagStack;
+	private int stackSize;
+	private String[] tagFrequencyKeys;
+	private int[] tagFrequencyValues;
+	private int frequencyIndex;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -76,9 +80,14 @@ public class Trabalho1 {
 	}
 
 	private void analyzeHTMLFile(String filePath) {
-		Stack<String> tagStack = new Stack<>();
+		tagStack = new String[1000]; // Tamanho máximo da pilha
+		stackSize = 0;
 		String[] singletonTags = { "meta", "base", "br", "col", "command", "embed", "hr", "img", "input", "link",
 				"param", "source", "!DOCTYPE" };
+
+		tagFrequencyKeys = new String[1000]; // Tamanho máximo de tags únicas
+		tagFrequencyValues = new int[1000]; // Correspondente às frequências
+		frequencyIndex = 0;
 
 		try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 			String line;
@@ -86,11 +95,11 @@ public class Trabalho1 {
 				// Identificar as tags de abertura e fechamento na linha
 				String[] tags = line.split("[<>]");
 				for (String tag : tags) {
-					if (!tag.isEmpty()) {
+					if (!tag.isEmpty() && tag.charAt(0) == '<') { // Verificar se a string começa com '<'
 						if (tag.startsWith("/")) {
 							// Tag de fechamento encontrada
 							String closingTag = tag.substring(1); // Remover o caractere '/' do início da tag
-							if (tagStack.isEmpty()) {
+							if (stackSize == 0) {
 								// Pilha vazia, indica que há uma tag de fechamento sem uma correspondente de
 								// abertura
 								resultTextArea.append("Erro: Tag de fechamento inesperada: " + closingTag + "\n");
@@ -98,7 +107,8 @@ public class Trabalho1 {
 							} else {
 								// Verificar se a tag de fechamento corresponde à última tag de abertura na
 								// pilha
-								String lastOpeningTag = tagStack.pop();
+								String lastOpeningTag = tagStack[--stackSize]; // Remover e obter a última tag de
+																				// abertura da pilha
 								if (!lastOpeningTag.equalsIgnoreCase(closingTag)) {
 									// As tags não correspondem, há um erro na estrutura do arquivo
 									resultTextArea.append("Erro: Tag de fechamento esperada: " + lastOpeningTag
@@ -116,8 +126,9 @@ public class Trabalho1 {
 								}
 							}
 							if (!isSingleton) {
-								// Se não for uma tag singleton, empilhar na pilha
-								tagStack.push(tag);
+								// Se não for uma tag singleton, empilhar na pilha e atualizar a frequência
+								tagStack[stackSize++] = tag;
+								updateTagFrequency(tag);
 							}
 						}
 					}
@@ -125,13 +136,18 @@ public class Trabalho1 {
 			}
 
 			// Verificar se ainda há tags de abertura pendentes na pilha
-			if (!tagStack.isEmpty()) {
+			if (stackSize > 0) {
 				resultTextArea.append("Erro: Faltam tags de fechamento para as seguintes tags de abertura:\n");
-				while (!tagStack.isEmpty()) {
-					resultTextArea.append(tagStack.pop() + "\n");
+				for (int i = stackSize - 1; i >= 0; i--) {
+					resultTextArea.append(tagStack[i] + "\n");
 				}
 			} else {
+				// Se o arquivo estiver bem formatado, exibir as tags e suas frequências
 				resultTextArea.append("O arquivo HTML está bem formatado.\n");
+				resultTextArea.append("Tags encontradas e suas frequências:\n");
+				for (int i = 0; i < frequencyIndex; i++) {
+					resultTextArea.append(tagFrequencyKeys[i] + ": " + tagFrequencyValues[i] + "\n");
+				}
 			}
 
 		} catch (IOException e) {
@@ -139,4 +155,18 @@ public class Trabalho1 {
 		}
 	}
 
+	private void updateTagFrequency(String tag) {
+		// Verificar se a tag já está na lista de frequência
+		for (int i = 0; i < frequencyIndex; i++) {
+			if (tag.equalsIgnoreCase(tagFrequencyKeys[i])) {
+				// Se sim, incrementar a frequência
+				tagFrequencyValues[i]++;
+				return;
+			}
+		}
+		// Se não, adicionar a tag à lista de frequência
+		tagFrequencyKeys[frequencyIndex] = tag;
+		tagFrequencyValues[frequencyIndex] = 1;
+		frequencyIndex++;
+	}
 }
