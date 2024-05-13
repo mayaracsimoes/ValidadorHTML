@@ -10,20 +10,16 @@ import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import javax.swing.event.AncestorListener;
-import javax.swing.event.AncestorEvent;
 
 public class Trabalho1 {
 
 	private JFrame frame;
 	private JTextField filePathField;
 	private PilhaLista tagStack;
-	// Adicione o JTextArea para exibir mensagens
 	JTextArea resultTextArea1 = new JTextArea();
 	private String[] tagFrequencyKeys;
 	private int[] tagFrequencyValues;
 	private int frequencyIndex;
-	// Crie o modelo de tabela com duas colunas
 	DefaultTableModel tableModel = new DefaultTableModel();
 
 	public static void main(String[] args) {
@@ -70,10 +66,8 @@ public class Trabalho1 {
 		tableModel.addColumn("Tag");
 		tableModel.addColumn("Ocorrências");
 
-		// Crie a tabela com o modelo de tabela
 		JTable table = new JTable(tableModel);
 
-		// Crie um JScrollPane e adicione a tabela a ele
 		JScrollPane tableScrollPane = new JScrollPane(table);
 		tableScrollPane.setBounds(50, 203, 500, 150);
 		frame.getContentPane().add(tableScrollPane);
@@ -95,13 +89,13 @@ public class Trabalho1 {
 	}
 
 	private void analyzeHTMLFile(String filePath) {
-		tagStack = new PilhaLista(); // Inicializa a pilha de tags
+		tagStack = new PilhaLista();
 
 		String[] singletonTags = { "meta", "base", "br", "col", "command", "embed", "hr", "img", "input", "link",
 				"param", "source", "!DOCTYPE html" };
 
-		tagFrequencyKeys = new String[1000]; // Tamanho máximo de tags únicas
-		tagFrequencyValues = new int[1000]; // Correspondente às frequências
+		tagFrequencyKeys = new String[1000];
+		tagFrequencyValues = new int[1000];
 		frequencyIndex = 0;
 
 		DefaultTableModel tableModel = new DefaultTableModel();
@@ -111,7 +105,6 @@ public class Trabalho1 {
 		try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 			String line;
 			while ((line = br.readLine()) != null) {
-				// Continuar com a análise das tags HTML contidas em line
 				int startIndex = 0;
 				while (startIndex < line.length()) {
 					int openingIndex = line.indexOf('<', startIndex);
@@ -122,20 +115,15 @@ public class Trabalho1 {
 						if (!tag.isEmpty()) {
 							if (tag.charAt(0) == '<') {
 								if (tag.startsWith("/")) {
-									// Tag de fechamento encontrada
-									String closingTag = tag.substring(2); // Remover o caractere '/' do início da tag
-									String lastOpeningTag = tagStack.pop(); // Remover e obter a última tag de abertura
-																			// da pilha
+									String closingTag = tag.substring(2);
+									String lastOpeningTag = tagStack.pop();
 									if (!lastOpeningTag.equalsIgnoreCase(closingTag)) {
-										// As tags não correspondem, há um erro na estrutura do arquivo
 										resultTextArea1.append("Erro: Tag de fechamento esperada: " + lastOpeningTag
 												+ ", encontrada: " + closingTag + "\n");
-										return; // Encerrar a análise
+										return;
 									}
 								} else {
-									// Tag de abertura encontrada, verificar se é uma tag singleton
 									if (!isSingletonTag(tag)) {
-										// Se não for uma tag singleton, empilhar na pilha e atualizar a frequência
 										tagStack.push(tag);
 										updateTagFrequency(tag);
 									}
@@ -149,20 +137,14 @@ public class Trabalho1 {
 				}
 			}
 
-			// Adicionar os dados da frequência ao modelo de tabela
 			for (int i = 0; i < frequencyIndex; i++) {
 				tableModel.addRow(new Object[] { tagFrequencyKeys[i], tagFrequencyValues[i] });
 			}
 
-			// Verificar se ainda há tags de abertura pendentes na pilha
 			if (!tagStack.estaVazia()) {
-
 				resultTextArea1.append("Erro: Faltam tags de fechamento para as seguintes tags de abertura:\n");
-
 				resultTextArea1.append(tagStack.pop() + "\n");
-
 			} else {
-				// Se o arquivo estiver bem formatado, exibir as tags e suas frequências
 				resultTextArea1.append("O arquivo HTML está bem formatado.\n");
 			}
 
@@ -172,36 +154,17 @@ public class Trabalho1 {
 	}
 
 	private void updateTagFrequency(String tag) {
-		// Debug: Verificar se o método está sendo chamado
-		System.out.println("Atualizando frequência para a tag: " + tag);
-
-		// Verificar se a tag já está na lista de frequência
-		boolean found = false;
 		for (int i = 0; i < tableModel.getRowCount(); i++) {
 			String existingTag = (String) tableModel.getValueAt(i, 0);
 			if (tag.equalsIgnoreCase(existingTag)) {
-				// Se sim, incrementar a frequência
 				int occurrences = (int) tableModel.getValueAt(i, 1);
 				tableModel.setValueAt(occurrences + 1, i, 1);
-				found = true;
-				break;
+				return;
 			}
 		}
-		// Se não, adicionar a tag à lista de frequência
-		if (!found) {
-			tableModel.addRow(new Object[] { tag, 1 });
-		}
-
-		// Imprimir o modelo de tabela para debug
-		for (int row = 0; row < tableModel.getRowCount(); row++) {
-			for (int column = 0; column < tableModel.getColumnCount(); column++) {
-				System.out.print(tableModel.getValueAt(row, column) + "\t");
-			}
-			System.out.println();
-		}
+		tableModel.addRow(new Object[] { tag, 1 });
 	}
 
-	// Método para verificar se uma tag é singleton
 	private boolean isSingletonTag(String tag) {
 		String[] singletonTags = { "meta", "base", "br", "col", "command", "embed", "hr", "img", "input", "link",
 				"param", "source", "<!DOCTYPE html>", "<html>", "</html>", "<head>", "</head>", "<body>", "</body>" };
